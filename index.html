@@ -112,6 +112,23 @@
       transition: transform 0.05s ease-out;
     }
 
+    .wall {
+      position: absolute;
+      background: #000;
+      border-radius: 5px;
+      z-index: 1;
+    }
+
+    .coin {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: gold;
+      border-radius: 50%;
+      box-shadow: 0 0 10px gold;
+      animation: spin 1s linear infinite;
+    }
+
     #scoreboard {
       position: absolute;
       top: 10px;
@@ -125,54 +142,58 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
     }
 
-    footer {
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes explosion {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(3);
+        opacity: 0;
+      }
+    }
+
+    .explosion {
       position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 0.9rem;
-      text-align: center;
-    }
-
-    footer a {
-      color: #fff;
-      text-decoration: none;
-      font-weight: bold;
-      transition: color 0.3s;
-    }
-
-    footer a:hover {
-      color: #ffcc00;
+      width: 50px;
+      height: 50px;
+      background: orange;
+      border-radius: 50%;
+      animation: explosion 0.5s ease-out;
+      z-index: 2;
     }
   </style>
 </head>
 <body>
-  <h1>Portfolio in Progress</h1>
+
+    <h1>Portfolio in Progress</h1>
   <p>Coming soon... Stay tuned!</p>
   <div class="spinner"></div>
-  <footer>
-    <p>Powered by <a href="Farcas Gabriel" target="_blank">Farcas Gabriel</a></p>
-  </footer>
 
+  
   <div id="scoreboard">Score: 0</div>
   <div id="car"></div>
-  
   <script>
     const car = document.getElementById("car");
     const scoreboard = document.getElementById("scoreboard");
     let score = 0;
 
-    // Initialize car position
     let carX = window.innerWidth / 2;
     let carY = window.innerHeight / 2;
 
-    // Update car position to follow the mouse
     window.addEventListener("mousemove", (e) => {
       const mouseX = e.clientX;
       const mouseY = e.clientY;
 
-      // Calculate car direction
       const dx = mouseX - carX;
       const dy = mouseY - carY;
       const angle = Math.atan2(dy, dx) * (180 / Math.PI);
@@ -180,46 +201,89 @@
       carX += dx * 0.05;
       carY += dy * 0.05;
 
-      // Update car position and rotation
       car.style.left = `${carX}px`;
       car.style.top = `${carY}px`;
       car.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+
+      detectCollision();
     });
 
-    // Collision detection with walls
     function detectCollision() {
-      if (carX < 0 || carX > window.innerWidth || carY < 0 || carY > window.innerHeight) {
-        score -= 10; // Deduct points on collision
-        updateScore();
-        resetCarPosition();
-      }
+      const walls = document.querySelectorAll(".wall");
+      walls.forEach((wall) => {
+        const rect = wall.getBoundingClientRect();
+        if (
+          carX > rect.left &&
+          carX < rect.right &&
+          carY > rect.top &&
+          carY < rect.bottom
+        ) {
+          createExplosion(carX, carY);
+          resetCarPosition();
+        }
+      });
+
+      const coins = document.querySelectorAll(".coin");
+      coins.forEach((coin) => {
+        const rect = coin.getBoundingClientRect();
+        if (
+          carX > rect.left &&
+          carX < rect.right &&
+          carY > rect.top &&
+          carY < rect.bottom
+        ) {
+          coin.remove();
+          score += 10;
+          updateScore();
+        }
+      });
     }
 
-    // Reset car to the center
+    function createExplosion(x, y) {
+      const explosion = document.createElement("div");
+      explosion.className = "explosion";
+      explosion.style.left = `${x}px`;
+      explosion.style.top = `${y}px`;
+      document.body.appendChild(explosion);
+      setTimeout(() => explosion.remove(), 500);
+    }
+
     function resetCarPosition() {
       carX = window.innerWidth / 2;
       carY = window.innerHeight / 2;
+      score -= 5;
+      updateScore();
     }
 
-    // Update the score
     function updateScore() {
       scoreboard.textContent = `Score: ${score}`;
     }
 
-    // Game loop for collision detection
-    setInterval(() => {
-      detectCollision();
-    }, 50);
+    function createWalls() {
+      for (let i = 0; i < 5; i++) {
+        const wall = document.createElement("div");
+        wall.className = "wall";
+        wall.style.width = `${Math.random() * 100 + 50}px`;
+        wall.style.height = `${Math.random() * 100 + 50}px`;
+        wall.style.left = `${Math.random() * (window.innerWidth - 100)}px`;
+        wall.style.top = `${Math.random() * (window.innerHeight - 100)}px`;
+        document.body.appendChild(wall);
+      }
+    }
 
-    // Increment score over time
-    setInterval(() => {
-      score += 1;
-      updateScore();
-    }, 1000);
+    function createCoins() {
+      for (let i = 0; i < 5; i++) {
+        const coin = document.createElement("div");
+        coin.className = "coin";
+        coin.style.left = `${Math.random() * (window.innerWidth - 50)}px`;
+        coin.style.top = `${Math.random() * (window.innerHeight - 50)}px`;
+        document.body.appendChild(coin);
+      }
+    }
+
+    createWalls();
+    createCoins();
+    setInterval(createCoins, 5000);
   </script>
 </body>
 </html>
-
-
-
-
