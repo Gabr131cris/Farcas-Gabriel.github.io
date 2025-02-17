@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portfolio in Progress</title>
+  <!-- Stilurile pentru ecranul "in progress" -->
   <style>
     body {
       margin: 0;
@@ -93,7 +94,10 @@
       }
     }
   </style>
+
+  <!-- Stilurile pentru joc -->
   <style>
+    /* Suprascriem unele stiluri pentru joc */
     body {
       margin: 0;
       overflow: hidden;
@@ -110,6 +114,7 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
       transform: translate(-50%, -50%);
       transition: transform 0.05s ease-out;
+      z-index: 3; /* Punem mașina deasupra altor elemente */
     }
 
     .wall {
@@ -127,6 +132,7 @@
       border-radius: 50%;
       box-shadow: 0 0 10px gold;
       animation: spin 1s linear infinite;
+      z-index: 1;
     }
 
     #scoreboard {
@@ -140,6 +146,7 @@
       padding: 10px 20px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+      z-index: 4; /* Deasupra coin-urilor */
     }
 
     @keyframes spin {
@@ -171,25 +178,51 @@
       animation: explosion 0.5s ease-out;
       z-index: 2;
     }
+
+    /* Inamicul care apare după 10 monede */
+    .enemy {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: purple;
+      border-radius: 50%;
+      box-shadow: 0 0 10px purple;
+      z-index: 2;
+    }
   </style>
 </head>
 <body>
 
-    <h1>Portfolio in Progress</h1>
+  <h1>Portfolio in Progress</h1>
   <p>Coming soon... Stay tuned!</p>
   <div class="spinner"></div>
 
-  
   <div id="scoreboard">Score: 0</div>
   <div id="car"></div>
+  <footer>
+    <p>Powered by <a href="Farcas Gabriel" target="_blank">Farcas Gabriel</a></p>
+  </footer>
   <script>
     const car = document.getElementById("car");
     const scoreboard = document.getElementById("scoreboard");
-    let score = 0;
 
+    let score = 0;
     let carX = window.innerWidth / 2;
     let carY = window.innerHeight / 2;
 
+    // Array-uri pentru pereți și monede
+    let walls = [];
+    let coins = [];
+
+    // Schimbare culori mașină după coliziuni
+    const carColors = ["red", "blue", "green", "yellow", "pink", "cyan", "lime", "orange"];
+    let currentColorIndex = 0;
+
+    // Flag pentru a indica dacă inamicul a fost deja creat (după 10 monede)
+    let enemyCreated = false;
+    let enemy = null;
+
+    // Inițializăm poziția mașinii și event listener pentru mișcare
     window.addEventListener("mousemove", (e) => {
       const mouseX = e.clientX;
       const mouseY = e.clientY;
@@ -209,7 +242,7 @@
     });
 
     function detectCollision() {
-      const walls = document.querySelectorAll(".wall");
+      // Coliziune cu pereții
       walls.forEach((wall) => {
         const rect = wall.getBoundingClientRect();
         if (
@@ -220,11 +253,12 @@
         ) {
           createExplosion(carX, carY);
           resetCarPosition();
+          changeCarColor();
         }
       });
 
-      const coins = document.querySelectorAll(".coin");
-      coins.forEach((coin) => {
+      // Coliziune cu monede
+      coins.forEach((coin, index) => {
         const rect = coin.getBoundingClientRect();
         if (
           carX > rect.left &&
@@ -232,11 +266,36 @@
           carY > rect.top &&
           carY < rect.bottom
         ) {
+          // Ștergem moneda din DOM și din array
           coin.remove();
+          coins.splice(index, 1);
+
           score += 10;
           updateScore();
+
+          // Dacă nu mai avem monede, generăm un nou set
+          if (coins.length === 0) {
+            createCoins();
+          }
         }
       });
+
+      // Coliziune cu inamicul (dacă există)
+      if (enemy) {
+        const enemyRect = enemy.getBoundingClientRect();
+        if (
+          carX > enemyRect.left &&
+          carX < enemyRect.right &&
+          carY > enemyRect.top &&
+          carY < enemyRect.bottom
+        ) {
+          // Penalizăm jucătorul la coliziune cu inamicul
+          score -= 10;
+          updateScore();
+          createExplosion(carX, carY);
+          resetCarPosition();
+        }
+      }
     }
 
     function createExplosion(x, y) {
@@ -253,13 +312,31 @@
       carY = window.innerHeight / 2;
       score -= 5;
       updateScore();
+      car.style.left = `${carX}px`;
+      car.style.top = `${carY}px`;
+      car.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+    }
+
+    function changeCarColor() {
+      currentColorIndex = (currentColorIndex + 1) % carColors.length;
+      car.style.background = carColors[currentColorIndex];
     }
 
     function updateScore() {
       scoreboard.textContent = `Score: ${score}`;
+
+      // Dacă jucătorul a adunat cel puțin 100 de puncte (adică 10 monede),
+      // creăm inamicul dacă nu l-am creat deja.
+      // (poți ajusta logica sau condiția după preferințe)
+      if (score >= 100 && !enemyCreated) {
+        enemyCreated = true;
+        createEnemy();
+      }
     }
 
+    // Funcție pentru creare pereți
     function createWalls() {
+      // Creăm 5 pereți noi, îi adăugăm în array și în DOM
       for (let i = 0; i < 5; i++) {
         const wall = document.createElement("div");
         wall.className = "wall";
@@ -268,22 +345,54 @@
         wall.style.left = `${Math.random() * (window.innerWidth - 100)}px`;
         wall.style.top = `${Math.random() * (window.innerHeight - 100)}px`;
         document.body.appendChild(wall);
+        walls.push(wall);
       }
     }
 
+    // Funcție pentru ștergere pereți
+    function removeWalls() {
+      walls.forEach(wall => wall.remove());
+      walls = [];
+    }
+
+    // Funcție pentru creare monede
     function createCoins() {
+      // Creăm 5 monede noi
       for (let i = 0; i < 5; i++) {
         const coin = document.createElement("div");
         coin.className = "coin";
         coin.style.left = `${Math.random() * (window.innerWidth - 50)}px`;
         coin.style.top = `${Math.random() * (window.innerHeight - 50)}px`;
         document.body.appendChild(coin);
+        coins.push(coin);
       }
     }
 
+    // Funcție pentru creare și mișcare inamic
+    function createEnemy() {
+      enemy = document.createElement("div");
+      enemy.className = "enemy";
+      document.body.appendChild(enemy);
+
+      // Mișcăm inamicul random la fiecare 1 secundă
+      setInterval(() => {
+        if (!enemy) return;
+        const x = Math.random() * (window.innerWidth - 50);
+        const y = Math.random() * (window.innerHeight - 50);
+        enemy.style.left = `${x}px`;
+        enemy.style.top = `${y}px`;
+      }, 1000);
+    }
+
+    // ======== Inițializare joc ========
     createWalls();
     createCoins();
-    setInterval(createCoins, 5000);
+
+    // La fiecare 10 secunde, pereții dispar și apar în alte locuri
+    setInterval(() => {
+      removeWalls();
+      createWalls();
+    }, 10000);
   </script>
 </body>
 </html>
