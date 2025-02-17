@@ -202,6 +202,7 @@
   <footer>
     <p>Powered by <a href="Farcas Gabriel" target="_blank">Farcas Gabriel</a></p>
   </footer>
+
   <script>
     const car = document.getElementById("car");
     const scoreboard = document.getElementById("scoreboard");
@@ -218,11 +219,16 @@
     const carColors = ["red", "blue", "green", "yellow", "pink", "cyan", "lime", "orange"];
     let currentColorIndex = 0;
 
-    // Flag pentru a indica dacă inamicul a fost deja creat (după 10 monede)
+    // Inamic
     let enemyCreated = false;
     let enemy = null;
 
-    // Inițializăm poziția mașinii și event listener pentru mișcare
+    // Centrul ecranului și raza de siguranță pentru pereți
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    const safeRadius = 100; // raza în care NU se vor mai spawna pereții
+
+    // ================== Controale mașină ==================
     window.addEventListener("mousemove", (e) => {
       const mouseX = e.clientX;
       const mouseY = e.clientY;
@@ -241,6 +247,7 @@
       detectCollision();
     });
 
+    // ================== Coliziuni ==================
     function detectCollision() {
       // Coliziune cu pereții
       walls.forEach((wall) => {
@@ -298,6 +305,7 @@
       }
     }
 
+    // ================== Efect explozie ==================
     function createExplosion(x, y) {
       const explosion = document.createElement("div");
       explosion.className = "explosion";
@@ -307,6 +315,7 @@
       setTimeout(() => explosion.remove(), 500);
     }
 
+    // ================== Resetare mașină ==================
     function resetCarPosition() {
       carX = window.innerWidth / 2;
       carY = window.innerHeight / 2;
@@ -317,47 +326,66 @@
       car.style.transform = `translate(-50%, -50%) rotate(0deg)`;
     }
 
+    // ================== Schimbare culoare mașină ==================
     function changeCarColor() {
       currentColorIndex = (currentColorIndex + 1) % carColors.length;
       car.style.background = carColors[currentColorIndex];
     }
 
+    // ================== Update scor ==================
     function updateScore() {
       scoreboard.textContent = `Score: ${score}`;
 
-      // Dacă jucătorul a adunat cel puțin 100 de puncte (adică 10 monede),
-      // creăm inamicul dacă nu l-am creat deja.
-      // (poți ajusta logica sau condiția după preferințe)
+      // Dacă jucătorul a adunat cel puțin 100 de puncte (10 monede),
+      // apare inamicul dacă nu există deja
       if (score >= 100 && !enemyCreated) {
         enemyCreated = true;
         createEnemy();
       }
     }
 
-    // Funcție pentru creare pereți
+    // ================== Generare pereți (fără centrul ecranului) ==================
     function createWalls() {
-      // Creăm 5 pereți noi, îi adăugăm în array și în DOM
       for (let i = 0; i < 5; i++) {
+        let x, y;
+        let safePosition = false;
+
+        // Generăm până iese din zona "safeRadius"
+        while (!safePosition) {
+          x = Math.random() * (window.innerWidth - 100);
+          y = Math.random() * (window.innerHeight - 100);
+
+          // Centrul pareților (considerăm colțul stânga-sus)
+          // Aici putem aproxima că "centrul" peretelui e x + width/2, y + height/2
+          // Dar, ca simplificare, verificăm doar (x, y) față de centrul ecranului
+          const dist = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+          if (dist > safeRadius) {
+            safePosition = true;
+          }
+        }
+
         const wall = document.createElement("div");
         wall.className = "wall";
-        wall.style.width = `${Math.random() * 100 + 50}px`;
-        wall.style.height = `${Math.random() * 100 + 50}px`;
-        wall.style.left = `${Math.random() * (window.innerWidth - 100)}px`;
-        wall.style.top = `${Math.random() * (window.innerHeight - 100)}px`;
+        // Lățimea și înălțimea random
+        const w = Math.random() * 100 + 50;
+        const h = Math.random() * 100 + 50;
+        wall.style.width = `${w}px`;
+        wall.style.height = `${h}px`;
+        wall.style.left = `${x}px`;
+        wall.style.top = `${y}px`;
         document.body.appendChild(wall);
         walls.push(wall);
       }
     }
 
-    // Funcție pentru ștergere pereți
+    // ================== Ștergere pereți ==================
     function removeWalls() {
       walls.forEach(wall => wall.remove());
       walls = [];
     }
 
-    // Funcție pentru creare monede
+    // ================== Generare monede ==================
     function createCoins() {
-      // Creăm 5 monede noi
       for (let i = 0; i < 5; i++) {
         const coin = document.createElement("div");
         coin.className = "coin";
@@ -368,27 +396,71 @@
       }
     }
 
-    // Funcție pentru creare și mișcare inamic
+    // ================== Creare și mișcare inamic (random, nu teleport) ==================
     function createEnemy() {
       enemy = document.createElement("div");
       enemy.className = "enemy";
       document.body.appendChild(enemy);
 
-      // Mișcăm inamicul random la fiecare 1 secundă
-      setInterval(() => {
-        if (!enemy) return;
-        const x = Math.random() * (window.innerWidth - 50);
-        const y = Math.random() * (window.innerHeight - 50);
-        enemy.style.left = `${x}px`;
-        enemy.style.top = `${y}px`;
-      }, 1000);
+      // Poziția inamicului
+      let enemyX = Math.random() * (window.innerWidth - 40);
+      let enemyY = Math.random() * (window.innerHeight - 40);
+      enemy.style.left = enemyX + "px";
+      enemy.style.top = enemyY + "px";
+
+      // Viteza inamicului (se schimbă la fiecare 2 secunde)
+      let speedX = 0;
+      let speedY = 0;
+
+      function pickRandomDirection() {
+        const angle = Math.random() * 2 * Math.PI; // un unghi aleator
+        const speed = 2; // viteza la care se mișcă inamicul
+        speedX = Math.cos(angle) * speed;
+        speedY = Math.sin(angle) * speed;
+      }
+
+      // Schimbăm direcția la fiecare 2 secunde
+      pickRandomDirection();
+      setInterval(pickRandomDirection, 2000);
+
+      // Mișcare continuă folosind requestAnimationFrame
+      function moveEnemy() {
+        enemyX += speedX;
+        enemyY += speedY;
+
+        // Verifică marginile ecranului și întoarce direcția (bounce)
+        if (enemyX < 0) {
+          enemyX = 0;
+          speedX = -speedX;
+        }
+        if (enemyX > window.innerWidth - 40) {
+          enemyX = window.innerWidth - 40;
+          speedX = -speedX;
+        }
+        if (enemyY < 0) {
+          enemyY = 0;
+          speedY = -speedY;
+        }
+        if (enemyY > window.innerHeight - 40) {
+          enemyY = window.innerHeight - 40;
+          speedY = -speedY;
+        }
+
+        // Actualizează poziția inamicului
+        enemy.style.left = enemyX + "px";
+        enemy.style.top = enemyY + "px";
+
+        // Re-apelare ciclică a funcției de mișcare
+        requestAnimationFrame(moveEnemy);
+      }
+      moveEnemy();
     }
 
-    // ======== Inițializare joc ========
+    // ================== Inițializare joc ==================
     createWalls();
     createCoins();
 
-    // La fiecare 10 secunde, pereții dispar și apar în alte locuri
+    // Pereții dispar și se regenerează în alte locuri la fiecare 10 secunde
     setInterval(() => {
       removeWalls();
       createWalls();
