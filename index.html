@@ -3,102 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portfolio in Progress</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Arial', sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-      color: white;
-      overflow: hidden;
-    }
-
-    h1 {
-      font-size: 3rem;
-      margin: 0;
-      animation: pulse 2s infinite;
-    }
-
-    p {
-      margin: 10px 0;
-      font-size: 1.2rem;
-      opacity: 0.8;
-      animation: fadeIn 3s infinite alternate;
-    }
-
-    .spinner {
-      margin-top: 20px;
-      width: 50px;
-      height: 50px;
-      border: 5px solid rgba(255, 255, 255, 0.3);
-      border-top: 5px solid white;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    footer {
-      position: absolute;
-      bottom: 20px;
-      text-align: center;
-      font-size: 0.9rem;
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    footer a {
-      color: #fff;
-      text-decoration: none;
-      font-weight: bold;
-      transition: color 0.3s;
-    }
-
-    footer a:hover {
-      color: #ffcc00;
-    }
-
-    @keyframes pulse {
-      0% {
-        transform: scale(1);
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-      }
-      50% {
-        transform: scale(1.1);
-        text-shadow: 0 0 20px rgba(255, 255, 255, 1);
-      }
-      100% {
-        transform: scale(1);
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-      }
-    }
-
-    @keyframes fadeIn {
-      0% {
-        opacity: 0.6;
-      }
-      100% {
-        opacity: 1;
-      }
-    }
-
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-  </style>
+  <title>Car Game</title>
   <style>
     body {
       margin: 0;
       overflow: hidden;
       background: linear-gradient(135deg, #1e3a8a, #3b82f6);
       font-family: Arial, sans-serif;
+      color: white;
     }
 
     #car {
@@ -109,7 +21,6 @@
       border-radius: 5px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
       transform: translate(-50%, -50%);
-      transition: transform 0.05s ease-out;
     }
 
     .wall {
@@ -136,10 +47,25 @@
       transform: translateX(-50%);
       color: white;
       font-size: 1.5rem;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 10px 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+    }
+
+    footer {
+      position: absolute;
+      bottom: 20px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    footer a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s;
+    }
+
+    footer a:hover {
+      color: #ffcc00;
     }
 
     @keyframes spin {
@@ -150,140 +76,108 @@
         transform: rotate(360deg);
       }
     }
-
-    @keyframes explosion {
-      0% {
-        transform: scale(1);
-        opacity: 1;
-      }
-      100% {
-        transform: scale(3);
-        opacity: 0;
-      }
-    }
-
-    .explosion {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      background: orange;
-      border-radius: 50%;
-      animation: explosion 0.5s ease-out;
-      z-index: 2;
-    }
   </style>
 </head>
 <body>
-
-    <h1>Portfolio in Progress</h1>
-  <p>Coming soon... Stay tuned!</p>
-  <div class="spinner"></div>
-
-  
-  <div id="scoreboard">Score: 0</div>
   <div id="car"></div>
+  <div id="scoreboard">Score: 0</div>
+  <footer>
+    <p>Car Game Demo | Created by You</p>
+  </footer>
+
   <script>
-    const car = document.getElementById("car");
-    const scoreboard = document.getElementById("scoreboard");
+    const car = document.getElementById('car');
+    const scoreboard = document.getElementById('scoreboard');
+    const body = document.body;
+
     let score = 0;
+    let positionX = window.innerWidth / 2;
+    let positionY = window.innerHeight / 2;
 
-    let carX = window.innerWidth / 2;
-    let carY = window.innerHeight / 2;
+    const walls = [];
+    const coins = [];
 
-    window.addEventListener("mousemove", (e) => {
-      const mouseX = e.clientX;
-      const mouseY = e.clientY;
+    // Update car position
+    const moveCar = (e) => {
+      switch (e.key) {
+        case 'ArrowUp':
+          positionY = Math.max(0, positionY - 10);
+          break;
+        case 'ArrowDown':
+          positionY = Math.min(window.innerHeight - 30, positionY + 10);
+          break;
+        case 'ArrowLeft':
+          positionX = Math.max(0, positionX - 10);
+          break;
+        case 'ArrowRight':
+          positionX = Math.min(window.innerWidth - 50, positionX + 10);
+          break;
+      }
+      car.style.transform = `translate(${positionX}px, ${positionY}px)`;
+      checkCollisions();
+    };
 
-      const dx = mouseX - carX;
-      const dy = mouseY - carY;
-      const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    // Spawn walls
+    const spawnWall = () => {
+      const wall = document.createElement('div');
+      wall.className = 'wall';
+      wall.style.width = `${Math.random() * 100 + 50}px`;
+      wall.style.height = '20px';
+      wall.style.top = `${Math.random() * window.innerHeight}px`;
+      wall.style.left = `${Math.random() * window.innerWidth}px`;
+      body.appendChild(wall);
+      walls.push(wall);
+    };
 
-      carX += dx * 0.05;
-      carY += dy * 0.05;
+    // Spawn coins
+    const spawnCoin = () => {
+      const coin = document.createElement('div');
+      coin.className = 'coin';
+      coin.style.top = `${Math.random() * window.innerHeight}px`;
+      coin.style.left = `${Math.random() * window.innerWidth}px`;
+      body.appendChild(coin);
+      coins.push(coin);
+    };
 
-      car.style.left = `${carX}px`;
-      car.style.top = `${carY}px`;
-      car.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
-
-      detectCollision();
-    });
-
-    function detectCollision() {
-      const walls = document.querySelectorAll(".wall");
-      walls.forEach((wall) => {
-        const rect = wall.getBoundingClientRect();
+    // Check collisions
+    const checkCollisions = () => {
+      coins.forEach((coin, index) => {
+        const coinRect = coin.getBoundingClientRect();
+        const carRect = car.getBoundingClientRect();
         if (
-          carX > rect.left &&
-          carX < rect.right &&
-          carY > rect.top &&
-          carY < rect.bottom
-        ) {
-          createExplosion(carX, carY);
-          resetCarPosition();
-        }
-      });
-
-      const coins = document.querySelectorAll(".coin");
-      coins.forEach((coin) => {
-        const rect = coin.getBoundingClientRect();
-        if (
-          carX > rect.left &&
-          carX < rect.right &&
-          carY > rect.top &&
-          carY < rect.bottom
+          carRect.left < coinRect.right &&
+          carRect.right > coinRect.left &&
+          carRect.top < coinRect.bottom &&
+          carRect.bottom > coinRect.top
         ) {
           coin.remove();
-          score += 10;
-          updateScore();
+          coins.splice(index, 1);
+          score++;
+          scoreboard.textContent = `Score: ${score}`;
         }
       });
-    }
 
-    function createExplosion(x, y) {
-      const explosion = document.createElement("div");
-      explosion.className = "explosion";
-      explosion.style.left = `${x}px`;
-      explosion.style.top = `${y}px`;
-      document.body.appendChild(explosion);
-      setTimeout(() => explosion.remove(), 500);
-    }
+      walls.forEach((wall) => {
+        const wallRect = wall.getBoundingClientRect();
+        const carRect = car.getBoundingClientRect();
+        if (
+          carRect.left < wallRect.right &&
+          carRect.right > wallRect.left &&
+          carRect.top < wallRect.bottom &&
+          carRect.bottom > wallRect.top
+        ) {
+          alert('Game Over!');
+          location.reload();
+        }
+      });
+    };
 
-    function resetCarPosition() {
-      carX = window.innerWidth / 2;
-      carY = window.innerHeight / 2;
-      score -= 5;
-      updateScore();
-    }
+    // Spawn elements periodically
+    setInterval(spawnWall, 2000);
+    setInterval(spawnCoin, 1500);
 
-    function updateScore() {
-      scoreboard.textContent = `Score: ${score}`;
-    }
-
-    function createWalls() {
-      for (let i = 0; i < 5; i++) {
-        const wall = document.createElement("div");
-        wall.className = "wall";
-        wall.style.width = `${Math.random() * 100 + 50}px`;
-        wall.style.height = `${Math.random() * 100 + 50}px`;
-        wall.style.left = `${Math.random() * (window.innerWidth - 100)}px`;
-        wall.style.top = `${Math.random() * (window.innerHeight - 100)}px`;
-        document.body.appendChild(wall);
-      }
-    }
-
-    function createCoins() {
-      for (let i = 0; i < 5; i++) {
-        const coin = document.createElement("div");
-        coin.className = "coin";
-        coin.style.left = `${Math.random() * (window.innerWidth - 50)}px`;
-        coin.style.top = `${Math.random() * (window.innerHeight - 50)}px`;
-        document.body.appendChild(coin);
-      }
-    }
-
-    createWalls();
-    createCoins();
-    setInterval(createCoins, 5000);
+    // Add event listener
+    window.addEventListener('keydown', moveCar);
   </script>
 </body>
 </html>
